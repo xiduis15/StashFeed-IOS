@@ -69,15 +69,16 @@ final class FeedPlayerPool {
             player?.play()
         }
 
-        if randomStartEnabled {
+        // Uses Stash's own known file duration (from the GraphQL scene metadata) rather than
+        // AVPlayerItem.duration: a direct/progressive stream's duration isn't always populated
+        // by the time the item becomes ready (can report an indefinite/NaN duration until more
+        // of the file has been probed), which silently skipped this seek entirely.
+        if randomStartEnabled, let knownDuration = scene.durationSeconds, knownDuration > 0 {
             readyObservers[index] = player.observe(\.status, options: [.new]) { [weak self] observedPlayer, _ in
                 guard observedPlayer.status == .readyToPlay else { return }
-                let durationSeconds = item.duration.seconds
-                if durationSeconds.isFinite, durationSeconds > 0 {
-                    let fraction = Double.random(in: 0.15...0.60)
-                    let target = CMTime(seconds: durationSeconds * fraction, preferredTimescale: 600)
-                    observedPlayer.seek(to: target)
-                }
+                let fraction = Double.random(in: 0.15...0.60)
+                let target = CMTime(seconds: knownDuration * fraction, preferredTimescale: 600)
+                observedPlayer.seek(to: target)
                 // Only randomize the very first time this player becomes ready, not on every
                 // rebuffer-then-ready cycle.
                 self?.readyObservers[index]?.invalidate()

@@ -45,12 +45,6 @@ struct FeedVideoPage: View {
                     .foregroundColor(.white)
                     .multilineTextAlignment(.center)
                     .padding(24)
-            } else if let stuckDiagnostic = observer.stuckDiagnostic {
-                Text(stuckDiagnostic)
-                    .font(.caption)
-                    .foregroundColor(.yellow)
-                    .multilineTextAlignment(.center)
-                    .padding(24)
             } else if observer.isBuffering {
                 ProgressView()
                     .tint(.white)
@@ -92,7 +86,13 @@ struct FeedVideoPage: View {
             }
         }
         .onAppear {
-            observer.attach(to: player)
+            observer.attach(to: player, knownDuration: scene.durationSeconds)
+            // .onChange(of: isActive) below only fires on a *change* - the very first page
+            // (already active the moment it appears) would otherwise never get an initial
+            // play() call, requiring a manual tap to start.
+            if isActive {
+                player.play()
+            }
         }
         .onDisappear {
             observer.detach()
@@ -103,9 +103,8 @@ struct FeedVideoPage: View {
             } else {
                 player.pause()
                 let positionSeconds = player.currentTime().seconds
-                let durationSeconds = player.currentItem?.duration.seconds ?? 0
                 if positionSeconds.isFinite, positionSeconds > 0 {
-                    onSaveActivity(positionSeconds, durationSeconds.isFinite ? durationSeconds : 0)
+                    onSaveActivity(positionSeconds, scene.durationSeconds ?? 0)
                 }
             }
         }
@@ -167,7 +166,8 @@ struct FeedVideoPage: View {
     }
 
     private func seek(toFraction fraction: Double) {
-        guard let duration = player.currentItem?.duration.seconds, duration.isFinite, duration > 0 else { return }
+        guard let duration = scene.durationSeconds ?? player.currentItem?.duration.seconds,
+              duration.isFinite, duration > 0 else { return }
         let target = CMTime(seconds: duration * fraction, preferredTimescale: 600)
         player.seek(to: target)
         observer.progressFraction = fraction
