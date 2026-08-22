@@ -132,8 +132,18 @@ struct FeedRootScreen: View {
         }
     }
 
+    private var appVersionText: String {
+        let shortVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
+        let buildNumber = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "?"
+        return "Version \(shortVersion) (\(buildNumber))"
+    }
+
     private var settingsMenu: some View {
         Menu {
+            Text(appVersionText)
+
+            Divider()
+
             Button {
                 viewModel.toggleRandomStart()
             } label: {
