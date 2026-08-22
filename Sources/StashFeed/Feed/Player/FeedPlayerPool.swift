@@ -48,12 +48,12 @@ final class FeedPlayerPool {
     }
 
     private func makePlayer(for index: Int, scene: FeedScene) -> AVPlayer {
-        var headers: [String: String] = [:]
-        if let apiKeyHeader = urlSession.configuration.httpAdditionalHeaders?["ApiKey"] as? String {
-            headers["ApiKey"] = apiKeyHeader
-        }
-        let assetOptions: [String: Any] = headers.isEmpty ? [:] : ["AVURLAssetHTTPHeaderFieldsKey": headers]
-        let asset = AVURLAsset(url: scene.streamURL, options: assetOptions)
+        // No custom "ApiKey" header here: Stash's stream URLs are self-authenticating (either a
+        // "?apikey=" query param, or a signed URL with its own cid/expires/sig params when the
+        // server has username/password credentials configured - see StashHttpClient.kt for the
+        // Android-side equivalent finding). Injecting a header via AVURLAssetHTTPHeaderFieldsKey
+        // is unreliable for HLS segment sub-requests on some iOS versions and isn't needed here.
+        let asset = AVURLAsset(url: scene.streamURL)
         let item = AVPlayerItem(asset: asset)
         let player = AVPlayer(playerItem: item)
         player.actionAtItemEnd = .none

@@ -16,7 +16,7 @@ targets:
       properties:
         UILaunchScreen: {}
         NSAppTransportSecurity:
-          NSAllowsLocalNetworking: true
+          NSAllowsArbitraryLoads: true
         NSLocalNetworkUsageDescription: "StashFeed doit accéder à ton serveur Stash sur le réseau local."
     settings:
       base:

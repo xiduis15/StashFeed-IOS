@@ -40,7 +40,12 @@ struct FeedVideoPage: View {
                 videoGravity: scene.isPortrait ? .resizeAspectFill : .resizeAspect
             )
 
-            if observer.isBuffering {
+            if let errorMessage = observer.errorMessage {
+                Text(errorMessage)
+                    .foregroundColor(.white)
+                    .multilineTextAlignment(.center)
+                    .padding(24)
+            } else if observer.isBuffering {
                 ProgressView()
                     .tint(.white)
                     .scaleEffect(1.4)
