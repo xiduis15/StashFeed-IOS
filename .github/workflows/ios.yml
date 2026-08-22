@@ -22,3 +22,30 @@ jobs:
             -scheme StashFeed \
             -destination "generic/platform=iOS Simulator" \
             CODE_SIGNING_ALLOWED=NO
+
+      # Unsigned device build: SideStore (or AltStore/Sideloadly) does the actual code signing
+      # on-device with your own free Apple ID - we deliberately don't attempt to automate Apple ID
+      # sign-in/2FA here, that's fragile in CI. This step only produces the raw .app/.ipa.
+      - name: Build unsigned .app for a real device
+        run: |
+          xcodebuild build \
+            -scheme StashFeed \
+            -configuration Release \
+            -destination "generic/platform=iOS" \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            DEVELOPMENT_TEAM=""
+
+      - name: Package unsigned .ipa
+        run: |
+          mkdir -p Payload
+          cp -r build/Build/Products/Release-iphoneos/StashFeed.app Payload/
+          zip -r StashFeed-unsigned.ipa Payload
+
+      - name: Upload unsigned .ipa artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: StashFeed-unsigned-ipa
+          path: StashFeed-unsigned.ipa
