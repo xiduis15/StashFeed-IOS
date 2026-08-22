@@ -1,13 +1,17 @@
 import Foundation
 
-/// Mirrors FeedViewModel.kt: owns the scenes list, pagination, the player pool, and every
-/// like/bookmark/view-count action (with optimistic UI + rollback on failure where it matters).
+/// Mirrors FeedViewModel.kt: owns the scenes list, pagination (incl. the active filter/sort),
+/// the player pool, and every like/view-count action (with optimistic UI + rollback on failure
+/// where it matters).
 @MainActor
 final class FeedViewModel: ObservableObject {
     @Published private(set) var scenes: [FeedScene] = []
     @Published private(set) var isLoadingMore = false
     @Published var errorMessage: String?
     @Published var randomStartEnabled: Bool
+    @Published var isMuted: Bool
+    @Published private(set) var filter = SceneFeedFilter()
+    @Published private(set) var sortOption: SceneSortOption = .random
 
     let playerPool: FeedPlayerPool
 
@@ -22,6 +26,8 @@ final class FeedViewModel: ObservableObject {
         self.playerPool = FeedPlayerPool(urlSession: session.urlSession)
         self.randomStartEnabled = settingsStore.randomStartEnabled
         self.playerPool.randomStartEnabled = settingsStore.randomStartEnabled
+        self.isMuted = settingsStore.isMuted
+        self.playerPool.isMuted = settingsStore.isMuted
         loadNextPage()
     }
 
@@ -32,13 +38,55 @@ final class FeedViewModel: ObservableObject {
         settingsStore.setRandomStartEnabled(newValue)
     }
 
+    func toggleMute() {
+        let newValue = !isMuted
+        isMuted = newValue
+        playerPool.isMuted = newValue
+        settingsStore.setMuted(newValue)
+    }
+
+    func updateFilter(_ newFilter: SceneFeedFilter) {
+        guard newFilter != filter else { return }
+        filter = newFilter
+        restartFeed()
+    }
+
+    func updateSort(_ newSort: SceneSortOption) {
+        guard newSort != sortOption else { return }
+        sortOption = newSort
+        restartFeed()
+    }
+
+    func searchTags(query: String) async -> [LibraryOption] {
+        (try? await session.feedRepository.searchTags(query: query)) ?? []
+    }
+
+    func searchPerformers(query: String) async -> [LibraryOption] {
+        (try? await session.feedRepository.searchPerformers(query: query)) ?? []
+    }
+
+    /// Clears the current page/scene list and starts loading fresh - used whenever the filter
+    /// or sort changes, so the wall doesn't show a mix of scenes matching two different
+    /// filters/sorts.
+    private func restartFeed() {
+        scenes = []
+        nextPage = 1
+        endReached = false
+        session.feedRepository.resetSeed()
+        loadNextPage()
+    }
+
     func loadNextPage() {
         guard !endReached, !isLoadingMore else { return }
         isLoadingMore = true
         errorMessage = nil
         Task {
             do {
-                let newScenes = try await session.feedRepository.loadPage(page: nextPage)
+                let newScenes = try await session.feedRepository.loadPage(
+                    page: nextPage,
+                    sort: sortOption,
+                    filter: filter
+                )
                 if newScenes.isEmpty {
                     endReached = true
                 } else {
@@ -75,20 +123,6 @@ final class FeedViewModel: ObservableObject {
                 _ = try await session.actionsRepository.deleteO(sceneId: sceneId)
             } catch {
                 updateScene(sceneId) { $0.oCounter += 1 }
-            }
-        }
-    }
-
-    /// Bookmark/save toggle -> Stash's "organized" flag.
-    func toggleBookmark(sceneId: String) {
-        guard let scene = scenes.first(where: { $0.id == sceneId }) else { return }
-        let newValue = !scene.organized
-        updateScene(sceneId) { $0.organized = newValue }
-        Task {
-            do {
-                _ = try await session.actionsRepository.setOrganized(sceneId: sceneId, organized: newValue)
-            } catch {
-                updateScene(sceneId) { $0.organized = !newValue }
             }
         }
     }

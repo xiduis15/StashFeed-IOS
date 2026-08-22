@@ -6,6 +6,9 @@ import AVFoundation
 final class FeedPlayerPool {
     let urlSession: URLSession
     var randomStartEnabled = false
+    var isMuted = false {
+        didSet { players.values.forEach { $0.isMuted = isMuted } }
+    }
 
     private var players: [Int: AVPlayer] = [:]
     private var loopObservers: [Int: NSObjectProtocol] = [:]
@@ -57,6 +60,7 @@ final class FeedPlayerPool {
         let item = AVPlayerItem(asset: asset)
         let player = AVPlayer(playerItem: item)
         player.actionAtItemEnd = .none
+        player.isMuted = isMuted
 
         // Loop the video like Reels instead of stopping at the end (equivalent of ExoPlayer's
         // REPEAT_MODE_ONE).

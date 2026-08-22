@@ -5,19 +5,35 @@ import Foundation
 /// scene (see stash/pkg/sqlite/sql.go randomSeedPrefix). Mirrors FeedRepository.kt.
 final class FeedRepository {
     private let client: GraphQLClient
-    private let seed: Int
+    private var seed: Int
 
     init(client: GraphQLClient) {
         self.client = client
         self.seed = Int.random(in: 0...99_999_999)
     }
 
-    func loadPage(page: Int, perPage: Int = 10) async throws -> [FeedScene] {
-        let variables: [String: Any] = [
+    /// Regenerates the random-sort seed. Called whenever the filter or sort option changes so
+    /// a new filtered set (or a switch back to `.random`) starts on a fresh stable order,
+    /// rather than reusing whatever order the previous filter happened to settle on.
+    func resetSeed() {
+        seed = Int.random(in: 0...99_999_999)
+    }
+
+    func loadPage(
+        page: Int,
+        perPage: Int = 10,
+        sort: SceneSortOption,
+        filter: SceneFeedFilter
+    ) async throws -> [FeedScene] {
+        var variables: [String: Any] = [
             "page": page,
             "perPage": perPage,
-            "sort": "random_\(seed)",
+            "sort": sort.field ?? "random_\(seed)",
+            "direction": sort.direction,
         ]
+        if let sceneFilter = Self.sceneFilterDict(filter) {
+            variables["sceneFilter"] = sceneFilter
+        }
 
         let data = try await client.execute(
             query: GraphQLQueries.findScenesFeed,
@@ -26,6 +42,42 @@ final class FeedRepository {
         )
 
         return data.findScenes.scenes.compactMap(Self.toFeedScene)
+    }
+
+    func searchTags(query: String, perPage: Int = 20) async throws -> [LibraryOption] {
+        let data = try await client.execute(
+            query: GraphQLQueries.findTags,
+            variables: ["q": query, "perPage": perPage],
+            as: FindTagsData.self
+        )
+        return data.findTags.tags.map { LibraryOption(id: $0.id, name: $0.name) }
+    }
+
+    func searchPerformers(query: String, perPage: Int = 20) async throws -> [LibraryOption] {
+        let data = try await client.execute(
+            query: GraphQLQueries.findPerformers,
+            variables: ["q": query, "perPage": perPage],
+            as: FindPerformersData.self
+        )
+        return data.findPerformers.performers.map { LibraryOption(id: $0.id, name: $0.name) }
+    }
+
+    /// Builds Stash's `SceneFilterType` dict, only including the fields actually set - `nil`
+    /// when the filter is empty, so the `$sceneFilter` GraphQL variable is omitted entirely
+    /// rather than sent as an all-null object.
+    private static func sceneFilterDict(_ filter: SceneFeedFilter) -> [String: Any]? {
+        guard !filter.isEmpty else { return nil }
+        var dict: [String: Any] = [:]
+        if !filter.titleQuery.isEmpty {
+            dict["title"] = ["value": filter.titleQuery, "modifier": "INCLUDES"]
+        }
+        if let tag = filter.tag {
+            dict["tags"] = ["value": [tag.id], "modifier": "INCLUDES"]
+        }
+        if let performer = filter.performer {
+            dict["performers"] = ["value": [performer.id], "modifier": "INCLUDES"]
+        }
+        return dict
     }
 
     private static func toFeedScene(_ dto: SceneDTO) -> FeedScene? {
@@ -49,7 +101,6 @@ final class FeedRepository {
             durationSeconds: primaryFile?.duration,
             resumeTimeSeconds: dto.resume_time,
             isPortrait: isPortrait,
-            organized: dto.organized,
             oCounter: dto.o_counter ?? 0,
             playCount: dto.play_count ?? 0
         )

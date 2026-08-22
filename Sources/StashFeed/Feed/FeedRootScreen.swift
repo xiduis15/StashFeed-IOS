@@ -48,17 +48,27 @@ struct FeedRootScreen: View {
     var body: some View {
         ZStack(alignment: .topTrailing) {
             NavigationStack(path: $path) {
-                Group {
-                    if viewModel.scenes.isEmpty {
-                        loadingOrError
-                    } else {
-                        VideoGridScreen(
-                            scenes: viewModel.scenes,
-                            isLoadingMore: viewModel.isLoadingMore,
-                            urlSession: viewModel.playerPool.urlSession,
-                            onSceneTap: { index in path.append(index) },
-                            onApproachingEnd: { index in viewModel.onApproachingEnd(index: index) }
-                        )
+                VStack(spacing: 0) {
+                    FeedFilterBar(
+                        filter: viewModel.filter,
+                        sortOption: viewModel.sortOption,
+                        onFilterChange: { viewModel.updateFilter($0) },
+                        onSortChange: { viewModel.updateSort($0) },
+                        searchTags: { await viewModel.searchTags(query: $0) },
+                        searchPerformers: { await viewModel.searchPerformers(query: $0) }
+                    )
+                    Group {
+                        if viewModel.scenes.isEmpty {
+                            loadingOrError
+                        } else {
+                            VideoGridScreen(
+                                scenes: viewModel.scenes,
+                                isLoadingMore: viewModel.isLoadingMore,
+                                urlSession: viewModel.playerPool.urlSession,
+                                onSceneTap: { index in path.append(index) },
+                                onApproachingEnd: { index in viewModel.onApproachingEnd(index: index) }
+                            )
+                        }
                     }
                 }
                 .navigationDestination(for: Int.self) { startIndex in
@@ -67,9 +77,10 @@ struct FeedRootScreen: View {
                         startIndex: startIndex,
                         playerPool: viewModel.playerPool,
                         urlSession: viewModel.playerPool.urlSession,
+                        isMuted: viewModel.isMuted,
                         onLike: { viewModel.toggleLike(sceneId: $0) },
                         onDecrementLike: { viewModel.decrementLike(sceneId: $0) },
-                        onBookmark: { viewModel.toggleBookmark(sceneId: $0) },
+                        onToggleMute: { viewModel.toggleMute() },
                         onSaveActivity: { id, resume, duration in
                             viewModel.saveActivity(sceneId: id, resumeTimeSeconds: resume, playDurationSeconds: duration)
                         },

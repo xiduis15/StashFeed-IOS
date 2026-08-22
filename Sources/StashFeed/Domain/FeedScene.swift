@@ -11,7 +11,6 @@ struct FeedScene: Identifiable, Equatable {
     let resumeTimeSeconds: Double?
     /// True when the video is taller than wide -> fill the screen (crop). Unknown -> false (fit).
     let isPortrait: Bool
-    var organized: Bool
     var oCounter: Int
     var playCount: Int
 }

@@ -39,16 +39,6 @@ final class SceneActionsRepository {
         return data.sceneAddPlay.count
     }
 
-    /// Bookmark/save toggle -> Stash's "organized" flag.
-    func setOrganized(sceneId: String, organized: Bool) async throws -> Bool {
-        let data = try await client.execute(
-            query: GraphQLQueries.sceneSetOrganized,
-            variables: ["id": sceneId, "organized": organized],
-            as: SceneUpdateOrganizedData.self
-        )
-        return data.sceneUpdate?.organized ?? organized
-    }
-
     /// Persists playback position so the scene can resume where the user left off.
     func saveActivity(sceneId: String, resumeTimeSeconds: Double, playDurationSeconds: Double) async throws {
         _ = try await client.execute(

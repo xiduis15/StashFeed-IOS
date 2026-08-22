@@ -10,9 +10,10 @@ struct FeedPagerScreen: View {
     let startIndex: Int
     let playerPool: FeedPlayerPool
     let urlSession: URLSession
+    let isMuted: Bool
     let onLike: (String) -> Void
     let onDecrementLike: (String) -> Void
-    let onBookmark: (String) -> Void
+    let onToggleMute: () -> Void
     let onSaveActivity: (String, Double, Double) -> Void
     let onPlayCounted: (String) -> Void
     let onApproachingEnd: (Int) -> Void
@@ -31,9 +32,10 @@ struct FeedPagerScreen: View {
                             pageIndex: index,
                             playerPool: playerPool,
                             urlSession: urlSession,
+                            isMuted: isMuted,
                             onLike: { onLike(scene.id) },
                             onDecrementLike: { onDecrementLike(scene.id) },
-                            onBookmark: { onBookmark(scene.id) },
+                            onToggleMute: onToggleMute,
                             onSaveActivity: { resume, duration in onSaveActivity(scene.id, resume, duration) },
                             onPlayCounted: { onPlayCounted(scene.id) }
                         )

@@ -24,7 +24,6 @@ struct FindScenesResultDTO: Decodable {
 struct SceneDTO: Decodable {
     let id: String
     let title: String?
-    let organized: Bool
     let o_counter: Int?
     let play_count: Int?
     let resume_time: Double?
@@ -66,15 +65,32 @@ struct SceneAddPlayData: Decodable {
     let sceneAddPlay: HistoryMutationResultDTO
 }
 
-struct SceneOrganizedDTO: Decodable {
-    let id: String
-    let organized: Bool
-}
-
-struct SceneUpdateOrganizedData: Decodable {
-    let sceneUpdate: SceneOrganizedDTO?
-}
-
 struct SceneSaveActivityData: Decodable {
     let sceneSaveActivity: Bool
+}
+
+struct TagDTO: Decodable {
+    let id: String
+    let name: String
+}
+
+struct FindTagsResultDTO: Decodable {
+    let tags: [TagDTO]
+}
+
+struct FindTagsData: Decodable {
+    let findTags: FindTagsResultDTO
+}
+
+struct PerformerDTO: Decodable {
+    let id: String
+    let name: String
+}
+
+struct FindPerformersResultDTO: Decodable {
+    let performers: [PerformerDTO]
+}
+
+struct FindPerformersData: Decodable {
+    let findPerformers: FindPerformersResultDTO
 }

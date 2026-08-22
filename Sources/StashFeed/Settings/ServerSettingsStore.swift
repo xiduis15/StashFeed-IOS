@@ -7,6 +7,7 @@ import Foundation
 final class ServerSettingsStore: ObservableObject {
     private let baseURLKey = "base_url"
     private let randomStartKey = "random_start_enabled"
+    private let isMutedKey = "is_muted"
     private let apiKeyKeychainKey = "api_key"
     private let pinHashKeychainKey = "pin_hash"
     private let pinEnabledKeychainKey = "pin_lock_enabled"
@@ -14,9 +15,11 @@ final class ServerSettingsStore: ObservableObject {
     private let defaults = UserDefaults.standard
 
     @Published var randomStartEnabled: Bool
+    @Published var isMuted: Bool
 
     init() {
         randomStartEnabled = UserDefaults.standard.bool(forKey: "random_start_enabled")
+        isMuted = UserDefaults.standard.bool(forKey: "is_muted")
     }
 
     func getCredentials() -> ServerCredentials? {
@@ -43,6 +46,11 @@ final class ServerSettingsStore: ObservableObject {
     func setRandomStartEnabled(_ enabled: Bool) {
         randomStartEnabled = enabled
         defaults.set(enabled, forKey: randomStartKey)
+    }
+
+    func setMuted(_ muted: Bool) {
+        isMuted = muted
+        defaults.set(muted, forKey: isMutedKey)
     }
 
     var isPinLockEnabled: Bool {

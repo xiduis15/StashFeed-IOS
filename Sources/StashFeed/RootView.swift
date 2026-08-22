@@ -46,6 +46,12 @@ struct RootView: View {
             if let credentials = appState.settingsStore.getCredentials(),
                let restoredSession = StashSession.create(credentials: credentials) {
                 connect(restoredSession)
+                // A fresh process (app was killed, not just backgrounded) starts with
+                // AppState.isLocked = false - without this check, restoring an existing
+                // session at cold start would skip the PIN entirely even when it's enabled.
+                if appState.settingsStore.isPinLockEnabled {
+                    appState.isLocked = true
+                }
             } else {
                 state = .needsLogin
             }
