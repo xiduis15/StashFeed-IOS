@@ -146,7 +146,7 @@ struct FeedRootScreen: View {
     private var appVersionText: String {
         let shortVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
         let buildNumber = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "?"
-        return "Version \(shortVersion) (\(buildNumber))"
+        return "Version \(shortVersion) (\(buildNumber)) · \(BuildInfo.gitCommitHash)"
     }
 
     private var settingsMenu: some View {

@@ -23,6 +23,20 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.stashfeed.stashfeed
         TARGETED_DEVICE_FAMILY: "1,2"
         SWIFT_VERSION: "5.0"
-        MARKETING_VERSION: "1.3"
-        CURRENT_PROJECT_VERSION: "4"
+        MARKETING_VERSION: "1.4"
+        CURRENT_PROJECT_VERSION: "5"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    prebuildScripts:
+      - name: Inject git commit hash
+        basedOnDependencyAnalysis: false
+        script: |
+          set -e
+          COMMIT=$(git -C "$SRCROOT" rev-parse --short HEAD 2>/dev/null || echo "unknown")
+          OUT="$SRCROOT/Sources/StashFeed/Generated/BuildInfo.swift"
+          cat > "$OUT" <<SWIFT_EOF
+          // Overwritten on every build by project.yml's prebuildScripts ("Inject git commit
+          // hash") - don't hand-edit gitCommitHash, it won't survive the next build.
+          enum BuildInfo {
+              static let gitCommitHash = "$COMMIT"
+          }
+          SWIFT_EOF
