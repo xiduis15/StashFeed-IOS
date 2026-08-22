@@ -60,8 +60,17 @@ final class FeedRepository {
         let mimeType: String?
     }
 
-    /// Prefers adaptive streaming (HLS/DASH) for resilience on unstable networks.
+    /// Prefers the direct/progressive stream over HLS on iOS: AVFoundation's native HLS parser
+    /// has long-standing, inconsistent behaviour around re-applying a manifest URL's query
+    /// string (our auth) to the *relative* segment URLs listed inside the .m3u8 playlist -
+    /// unlike Android's ExoPlayer, which resolves that correctly (see FeedRepository.kt, which
+    /// prefers HLS/DASH). A direct single-file URL has no such relative-resolution step, so it
+    /// sidesteps the whole class of bug. Home-LAN bandwidth makes the ABR benefit of HLS less
+    /// valuable here anyway.
     private static func bestStream(_ dto: SceneDTO) -> PickedStream? {
+        if let streamPath = dto.paths?.stream, let url = URL(string: streamPath) {
+            return PickedStream(url: url, mimeType: nil)
+        }
         let hls = dto.sceneStreams.first {
             $0.mime_type?.localizedCaseInsensitiveContains("mpegurl") == true
         }
@@ -70,9 +79,6 @@ final class FeedRepository {
         }
         if let adaptive = hls ?? dash, let url = URL(string: adaptive.url) {
             return PickedStream(url: url, mimeType: adaptive.mime_type)
-        }
-        if let streamPath = dto.paths?.stream, let url = URL(string: streamPath) {
-            return PickedStream(url: url, mimeType: nil)
         }
         if let first = dto.sceneStreams.first, let url = URL(string: first.url) {
             return PickedStream(url: url, mimeType: first.mime_type)

@@ -45,6 +45,12 @@ struct FeedVideoPage: View {
                     .foregroundColor(.white)
                     .multilineTextAlignment(.center)
                     .padding(24)
+            } else if let stuckDiagnostic = observer.stuckDiagnostic {
+                Text(stuckDiagnostic)
+                    .font(.caption)
+                    .foregroundColor(.yellow)
+                    .multilineTextAlignment(.center)
+                    .padding(24)
             } else if observer.isBuffering {
                 ProgressView()
                     .tint(.white)
