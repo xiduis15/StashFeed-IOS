@@ -71,7 +71,12 @@ struct ServerSettingsScreen: View {
 
             do {
                 // Cheap query used purely to validate the URL/key before persisting them.
-                _ = try await session.feedRepository.loadPage(page: 1, perPage: 1)
+                _ = try await session.feedRepository.loadPage(
+                    page: 1,
+                    perPage: 1,
+                    sort: .random,
+                    filter: SceneFeedFilter()
+                )
                 settingsStore.saveCredentials(baseURL: trimmedURL, apiKey: cleanedKey)
                 onConnected(session)
             } catch {
