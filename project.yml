@@ -1,0 +1,27 @@
+name: StashFeed
+options:
+  bundleIdPrefix: com.stashfeed
+configs:
+  Debug: debug
+  Release: release
+targets:
+  StashFeed:
+    type: application
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: Sources/StashFeed
+    info:
+      path: Generated/Info.plist
+      properties:
+        UILaunchScreen: {}
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+        NSLocalNetworkUsageDescription: "StashFeed doit accéder à ton serveur Stash sur le réseau local."
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.stashfeed.stashfeed
+        TARGETED_DEVICE_FAMILY: "1,2"
+        SWIFT_VERSION: "5.0"
+        MARKETING_VERSION: "1.0"
+        CURRENT_PROJECT_VERSION: "1"

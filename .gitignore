@@ -1,0 +1,7 @@
+.DS_Store
+/StashFeed.xcodeproj
+/Generated
+/build
+/DerivedData
+xcuserdata/
+*.xcuserstate
