@@ -1,6 +1,12 @@
 import AVFoundation
 import SwiftUI
 
+private enum PauseIndicatorPhase: Equatable {
+    case hidden
+    case centered
+    case corner
+}
+
 /// One full-screen item of the feed: video player + poster + O-count/mute controls + progress
 /// bar. Mirrors FeedVideoPage.kt (minus the tap-zone/O-count-buttons rework, iOS-only so far).
 struct FeedVideoPage: View {
@@ -22,6 +28,7 @@ struct FeedVideoPage: View {
     @State private var showSeekForward = false
     @State private var showCropToggleBurst = false
     @State private var isCroppedToFill: Bool
+    @State private var pauseIndicatorPhase: PauseIndicatorPhase = .hidden
 
     init(
         scene: FeedScene,
@@ -105,26 +112,35 @@ struct FeedVideoPage: View {
                         .frame(width: 56, height: 56)
                         .foregroundColor(.white)
                 }
+                pauseIndicator
+                    .animation(.easeInOut(duration: 0.25), value: pauseIndicatorPhase)
 
                 actionColumn
                 titleLabel
 
                 VStack {
                     Spacer()
-                    SeekBar(progressFraction: observer.progressFraction) { fraction in
+                    SeekBar(
+                        progressFraction: observer.progressFraction,
+                        durationSeconds: scene.durationSeconds
+                    ) { fraction in
                         seek(toFraction: fraction)
                     }
                 }
             }
             .clipped()
             .contentShape(Rectangle())
-            .gesture(
-                SpatialTapGesture(count: 2)
-                    .onEnded { value in handleDoubleTap(at: value.location.x, width: geometry.size.width) }
-                    .exclusively(before:
-                        SpatialTapGesture(count: 1).onEnded { _ in togglePlayPause() }
-                    )
-            )
+            // Deliberately `.onTapGesture` (not a hand-composed `.gesture(SpatialTapGesture...)`)
+            // - the composed form captures every tap across its whole contentShape to
+            // disambiguate single/double tap, which silently ate taps meant for the actionColumn
+            // buttons underneath. `.onTapGesture` doesn't have that problem (children win as
+            // before) and still exposes the location via this overload.
+            .onTapGesture(count: 2) { location in
+                handleDoubleTap(at: location.x, width: geometry.size.width)
+            }
+            .onTapGesture(count: 1) {
+                togglePlayPause()
+            }
         }
         .onAppear {
             observer.attach(to: player, knownDuration: scene.durationSeconds)
@@ -157,6 +173,18 @@ struct FeedVideoPage: View {
                 return
             }
             onPlayCounted()
+        }
+        // Auto-cancels (and never reaches the `.corner` transition) if pauseIndicatorPhase
+        // changes before the 5s elapse - e.g. the viewer resumes playback, which resets it to
+        // `.hidden` and invalidates this task since its id changed.
+        .task(id: pauseIndicatorPhase) {
+            guard pauseIndicatorPhase == .centered else { return }
+            do {
+                try await Task.sleep(nanoseconds: 5_000_000_000)
+            } catch {
+                return
+            }
+            pauseIndicatorPhase = .corner
         }
     }
 
@@ -247,8 +275,40 @@ struct FeedVideoPage: View {
     private func togglePlayPause() {
         if player.rate > 0 {
             player.pause()
+            pauseIndicatorPhase = .centered
         } else {
             player.play()
+            pauseIndicatorPhase = .hidden
+        }
+    }
+
+    @ViewBuilder
+    private var pauseIndicator: some View {
+        switch pauseIndicatorPhase {
+        case .hidden:
+            EmptyView()
+        case .centered:
+            Image(systemName: "pause.fill")
+                .font(.system(size: 40))
+                .foregroundColor(.white)
+                .padding(28)
+                .background(Circle().fill(Color.black.opacity(0.35)))
+                .transition(.opacity)
+        case .corner:
+            VStack {
+                HStack {
+                    Spacer()
+                    Image(systemName: "pause.fill")
+                        .font(.system(size: 13))
+                        .foregroundColor(.white.opacity(0.85))
+                        .padding(8)
+                        .background(Circle().fill(Color.black.opacity(0.3)))
+                }
+                .padding(.top, 12)
+                .padding(.trailing, 12)
+                Spacer()
+            }
+            .transition(.opacity)
         }
     }
 
