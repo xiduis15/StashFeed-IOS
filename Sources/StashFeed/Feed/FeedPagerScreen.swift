@@ -76,5 +76,8 @@ struct FeedPagerScreen: View {
         }
         .toolbar(.hidden, for: .navigationBar)
         .navigationBarBackButtonHidden(true)
+        // The seekbar sits near the bottom edge - without this, dragging it can be interpreted
+        // as the system's swipe-up-for-home/app-switcher gesture instead of our own drag.
+        .defersSystemGestures(on: .bottom)
     }
 }
