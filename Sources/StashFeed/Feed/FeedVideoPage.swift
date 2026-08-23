@@ -127,9 +127,10 @@ struct FeedVideoPage: View {
                         seek(toFraction: fraction)
                     }
                     // The page ignores safe areas (full-bleed video), so without this the bar's
-                    // touch target sits right in the home-indicator swipe zone - pulled up above
-                    // it, on top of `.defersSystemGestures(on: .bottom)` below.
-                    .padding(.bottom, geometry.safeAreaInsets.bottom + 8)
+                    // touch target sits right in the home-indicator swipe zone - pulled well
+                    // clear of it (closer to where Instagram Reels sits its own bar), on top of
+                    // `.defersSystemGestures(on: .bottom)` below as a second line of defence.
+                    .padding(.bottom, geometry.safeAreaInsets.bottom + 28)
                 }
             }
             .clipped()

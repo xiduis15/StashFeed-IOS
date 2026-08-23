@@ -1,9 +1,9 @@
 import SwiftUI
 
 /// Thin Reels-style progress bar you can tap or drag anywhere along to seek - the touch target
-/// (24pt tall) is taller than the visible line so it stays easy to grab. While dragging, a
-/// thumb + timestamp are lifted well above the touch point (like a native iOS slider) so the
-/// finger itself never hides them.
+/// (24pt tall) is taller than the visible line so it stays easy to grab. The line itself
+/// thickens while dragging (3pt -> 6pt), and a thumb + timestamp are lifted well above the
+/// touch point (like a native iOS slider) so the finger itself never hides them.
 struct SeekBar: View {
     let progressFraction: Double
     let durationSeconds: Double?
@@ -21,15 +21,19 @@ struct SeekBar: View {
         isDragging ? dragFraction : progressFraction
     }
 
+    private var barHeight: CGFloat {
+        isDragging ? 6 : 3
+    }
+
     var body: some View {
         GeometryReader { geometry in
             ZStack(alignment: .leading) {
                 Rectangle()
                     .fill(Color.white.opacity(0.3))
-                    .frame(height: 3)
+                    .frame(height: barHeight)
                 Rectangle()
                     .fill(Color.white)
-                    .frame(width: geometry.size.width * displayFraction, height: 3)
+                    .frame(width: geometry.size.width * displayFraction, height: barHeight)
 
                 if isDragging {
                     thumb(fraction: displayFraction)
@@ -37,6 +41,7 @@ struct SeekBar: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+            .animation(.easeOut(duration: 0.15), value: isDragging)
             .contentShape(Rectangle())
             .gesture(
                 DragGesture(minimumDistance: 0)
