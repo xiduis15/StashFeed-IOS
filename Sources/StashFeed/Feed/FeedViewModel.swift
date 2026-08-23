@@ -52,7 +52,11 @@ final class FeedViewModel: ObservableObject {
     }
 
     func updateSort(_ newSort: SceneSortOption) {
-        guard newSort != sortOption else { return }
+        // `.random` is special-cased: re-picking it while it's already the active sort is how
+        // the user asks for a fresh shuffle (the seed otherwise stays fixed for the whole
+        // session - see FeedRepository.resetSeed, only called from restartFeed below). Every
+        // other sort is deterministic, so re-picking an unchanged one would be a no-op reload.
+        guard newSort != sortOption || newSort == .random else { return }
         sortOption = newSort
         restartFeed()
     }
